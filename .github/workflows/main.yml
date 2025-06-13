@@ -24,12 +24,12 @@ jobs:
 
     - name: Build and Push Backend
       run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest ./app/backend
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest ./project1/backend
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
 
     - name: Build and Push Frontend
       run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest ./app/frontend
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest ./project1/frontend
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
 
     - name: Deploy to Linux VM
