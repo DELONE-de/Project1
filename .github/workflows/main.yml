@@ -47,7 +47,7 @@ jobs:
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: bcf358c5-3984-4d0b-a2fa-c522b68d8036
+          subscription-id: 6aa689bd-6395-4531-9e3f-6453efc18aa8
 
       - name: Create Azure VM and Configure
         uses: azure/cli@v2
