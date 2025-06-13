@@ -22,15 +22,26 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build and Push Backend
-      run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest ./backend
-        docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
+      # For Backend image
+    - name: Build and Push Backend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./Backend
+        file: ./Backend/Dockerfile
+        push: true
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest # <--- FIX HERE
+        # You might also want to add a tag based on commit SHA for better versioning:
+        # tags: ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest,${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}
 
-    - name: Build and Push Frontend
-      run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest ./frontend
-        docker push ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
+     # For Frontend image
+    - name: Build and Push frontend image
+      uses: docker/build-push-action@v5
+      with:
+       context: ./frontend
+       file: ./frontend/Dockerfile
+       push: true
+       tags: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest # <--- FIX HERE
+       # tags: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest,${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}  
 
     - name: Deploy to Linux VM
       uses: appleboy/ssh-action@v1.0.0
