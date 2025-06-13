@@ -44,106 +44,163 @@ jobs:
        # tags: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest,${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}  
 
     name: Run Azure Login with OIDC
+
     on: [push]
 
     permissions:
-    id-token: write
-    contents: read
+      id-token: write # Required for Azure/login with OIDC
+      contents: read  # Required to checkout the code
+
     jobs:
-    build-and-deploy:
-      runs-on: ubuntu-latest
-      steps:
-      - name: Azure login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Azure CLI script
-        uses: azure/cli@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            local name="mySSHVM"
-            local resource_group="MyResourceGroup"
-            local location="eastus" # Changed to a more common region, you can adjust
-            local image="Ubuntu2404"
-            local size="Standard_D2s_v3"
-            local admin_username="azureuser"
-            --ssh-key-value "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDD1Cbb3BHaqGHYHsEEenWaKOou0exeqmnOpjow15yEUSRnw7yaJRpOoPyuYR4w1HuJnXCJG0jPb0BA9t3AOfQBNY9yte2N9prgYFdySS1TLSkqM9s+bC1XQ095ouHJq29HLP/4U/udPklMpNuO72wEvl2BNHj4jB4p/hs0+5VMYJRSrAnpJRoT/vbPnzcoxwMtTLEVOnyruEB1DY8y4H9w1zUkgdHiAg6fnxqn0uZwou+m9eE8nqEy9Nm5YXJC/boXqK3F3O0YkdAaIa0KZeO/aiZZe2JM02s7+LtE18DIlp48+jkU0quT4lyDwqMcmw4DR5c85zglTua1GBOgiVn9convenati@gmail.com"
-        
-            echo "--- Starting Azure VM SSH Setup Script ---"
-        
-           
-            # 3. Create Resource Group if it doesn't exist
-            echo "Creating resource group '$resource_group' in '$location' (if it doesn't exist)..."
-            az group create --name "$resource_group" --location "$location" --output none
-            if [ $? -ne 0 ]; then
-                echo "Error: Failed to create or verify resource group '$resource_group'. Exiting."
-                exit 1
-            fi
-            echo "Resource group '$resource_group' is ready."
-        
-            # 4. Create VM with SSH key (auto-generates if not present)
-            echo "Creating Azure VM '$name'..."
-            az vm create \
-                --name "$name" \
-                --resource-group "$resource_group" \
-                --location "$location" \
-                --image "$image" \
-                --size "$size" \
-                --admin-username "$admin_username" \
-                --generate-ssh-keys \
-                --output jsonc # Use jsonc for better readability of output
-        
-            if [ $? -ne 0 ]; then
-                echo "Error: Failed to create VM '$name'. Exiting."
-                exit 1
-            fi
-            echo "VM '$name' created successfully."
-        
-            # 5. Get the Public IP Address of the VM
-            echo "Retrieving public IP address for VM '$name'..."
-            PUBLIC_IP=$(az vm show \
-                --resource-group "$resource_group" \
-                --name "$name" \
-                --show-details \
-                --query "publicIps" \
-                --output tsv)
-        
-            if [ -z "$PUBLIC_IP" ]; then
-                echo "Error: Could not retrieve public IP address for VM. Exiting."
-                exit 1
-            fi
-            echo "VM '$name' public IP: $PUBLIC_IP"
-        
-            # 6. Open required ports
-            echo "Opening SSH port (22)..."
-            az vm open-port -g "$resource_group" -n "$name" --port 22 --priority 100 --output none
-            echo "Opening HTTP port (80)..."
-            az vm open-port -g "$resource_group" -n "$name" --port 80 --priority 101 --output none
-            echo "Opening custom port (5000)..."
-            az vm open-port -g "$resource_group" -n "$name" --port 5000 --priority 102 --output none
-            echo "Required ports are now open."
-        
-            echo "--- VM Setup Complete! ---"
-            echo "You can now connect to your VM using SSH:"
-            echo "ssh -i $ssh_key_path $admin_username@$PUBLIC_IP"
-            echo ""
-            echo "Remember to secure your SSH private key ($ssh_key_path) and consider restricting NSG rules for production environments."
-            }
+      build-and-deploy:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Checkout code
+            uses: actions/checkout@v3 # Always a good first step to get your repo content
     
+          - name: Azure Login with OIDC
+            uses: azure/login@v2
+            with:
+              client-id: ${{ secrets.AZURE_CLIENT_ID }}
+              tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+              subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    
+          - name: Create Azure VM and Open Ports
+            uses: azure/cli@v2
+            with:
+              azcliversion: latest
+              inlineScript: |
+                # Define variables
+                name="mySSHVM"
+                resource_group="MyResourceGroup"
+                location="eastus" # Changed to a more common region, you can adjust
+                image="Ubuntu2404"
+                size="Standard_D2s_v3"
+                admin_username="azureuser"
+                
+                # --- IMPORTANT: SSH Key Handling ---
+                # You have two main options:
+                # OPTION 1 (Recommended for CI/CD): Let Azure CLI generate a new key for this run.
+                #          This key will be in the GitHub Actions runner's temp directory,
+                #          and the public key will be placed on the VM. You'll need
+                #          to retrieve the private key for connecting later (e.g., in a subsequent step
+                #          that connects via SSH, or for local debugging).
+                #          The 'az vm create --generate-ssh-keys' will create id_rsa and id_rsa.pub
+                #          in ~/.ssh/ on the runner.
+    
+                # OPTION 2 (Less ideal for CI/CD, but if you must use a pre-existing key):
+                #          If you want to use a specific public key that you already have,
+                #          you would typically pass the *path* to a public key file, or the
+                #          *value* of the public key.
+                #          In your original code, you had a hardcoded public key string:
+                #          "--ssh-key-value 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAA...'".
+                #          This is problematic for two reasons:
+                #          a) If you used --generate-ssh-keys AND --ssh-key-value, it's conflicting.
+                #          b) Hardcoding keys is generally bad practice. If using a pre-existing key,
+                #             it should come from a GitHub Secret.
+                #
+                # Let's stick with --generate-ssh-keys as it's simpler for automated VM creation.
+                # If you *really* need to use your specific public key from a secret, uncomment and modify this:
+                 SSH_PUBLIC_KEY_CONTENT="${{ secrets.SSH_KEY }}"
+                 echo "$SSH_PUBLIC_KEY_CONTENT" > /home/runner/.ssh/id_rsa.pub # Or a specific path
+    
+                echo "--- Starting Azure VM SSH Setup Script ---"
+    
+                # 3. Create Resource Group if it doesn't exist
+                echo "Creating resource group '$resource_group' in '$location' (if it doesn't exist)..."
+                az group create --name "$resource_group" --location "$location" --output none
+                if [ $? -ne 0 ]; then
+                    echo "Error: Failed to create or verify resource group '$resource_group'. Exiting."
+                    exit 1
+                fi
+                echo "Resource group '$resource_group' is ready."
+    
+                # 4. Create VM with SSH key
+                echo "Creating Azure VM '$name'..."
+                # Using --generate-ssh-keys will create a new key pair on the runner
+                # and place the public key on the VM.
+                az vm create \
+                    --name "$name" \
+                    --resource-group "$resource_group" \
+                    --location "$location" \
+                    --image "$image" \
+                    --size "$size" \
+                    --admin-username "$admin_username" \
+                    --generate-ssh-keys \
+                    --output jsonc # Use jsonc for better readability of output
+                
+                # --- Capture the path of the generated private key for later use if needed ---
+                # When --generate-ssh-keys is used, the keys are typically stored in ~/.ssh/id_rsa and ~/.ssh/id_rsa.pub
+                # on the runner's filesystem.
+                SSH_PRIVATE_KEY_PATH="/home/runner/.ssh/id_rsa" # Default path on ubuntu-latest runner
+                echo "SSH_PRIVATE_KEY_PATH=$SSH_PRIVATE_KEY_PATH" >> $GITHUB_ENV # Make it available to subsequent steps
+    
+                if [ $? -ne 0 ]; then
+                    echo "Error: Failed to create VM '$name'. Exiting."
+                    exit 1
+                fi
+                echo "VM '$name' created successfully."
+    
+                # 5. Get the Public IP Address of the VM
+                echo "Retrieving public IP address for VM '$name'..."
+                PUBLIC_IP=$(az vm show \
+                    --resource-group "$resource_group" \
+                    --name "$name" \
+                    --show-details \
+                    --query "publicIps" \
+                    --output tsv)
+                
+                # Make the public IP available to subsequent steps
+                echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
+    
+                if [ -z "$PUBLIC_IP" ]; then
+                    echo "Error: Could not retrieve public IP address for VM. Exiting."
+                    exit 1
+                fi
+                echo "VM '$name' public IP: $PUBLIC_IP"
+    
+                # 6. Open required ports
+                echo "Opening SSH port (22)..."
+                az vm open-port -g "$resource_group" -n "$name" --port 22 --priority 100 --output none
+                echo "Opening HTTP port (80)..."
+                az vm open-port -g "$resource_group" -n "$name" --port 80 --priority 101 --output none
+                echo "Opening custom port (5000)..."
+                az vm open-port -g "$resource_group" -n "$name" --port 5000 --priority 102 --output none
+                echo "Required ports are now open."
+    
+                echo "--- VM Setup Complete! ---"
+                echo "To connect manually, use: ssh -i <path_to_private_key> $admin_username@$PUBLIC_IP"
+                echo "Remember to secure your private key and consider restricting NSG rules for production."
+    
+          # Optional: Add a step to get the generated private key if you need to use it later
+          # For example, if a subsequent step needs to SSH into the newly created VM.
+          # Be extremely careful with secrets.
+          - name: Output SSH Private Key (for debugging/testing ONLY - DO NOT USE IN PRODUCTION)
+            if: always() # Runs even if previous steps fail
+            run: |
+              # The key is generated inside the azure/cli action's execution context.
+              # To access it, we need to read it from the runner's filesystem.
+              # NOTE: Exposing private keys in logs is a huge security risk.
+              # This is ONLY for local debugging or temporary testing.
+              # For actual SSH into the VM from CI/CD, use appleboy/ssh-action
+              # and provide the key as a secret.
+              if [ -f "${{ env.SSH_PRIVATE_KEY_PATH }}" ]; then
+                echo "--- Generated SSH Private Key ---"
+                cat ${{ env.SSH_PRIVATE_KEY_PATH }}
+                echo "-----------------------------------"
+              else
+                echo "SSH private key not found at ${{ env.SSH_PRIVATE_KEY_PATH }}"
+              fi
 
-      - name: Deploy to Linux VM
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USER }}
-        key: ${{ secrets.SSH_KEY }}
-        script: |
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
-          cd /app
-          docker compose down
-          docker compose up -d
+              - name: Deploy to Linux VM
+              uses: appleboy/ssh-action@v1.0.0
+              with:
+                host: ${{ secrets.HOST }}
+                username: ${{ secrets.USER }}
+                key: ${{ secrets.SSH_KEY }}
+                script: |
+                  docker pull ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
+                  docker pull ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
+                  cd /app
+                  docker compose down
+                  docker compose up -d
