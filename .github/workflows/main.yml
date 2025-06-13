@@ -43,6 +43,83 @@ jobs:
        tags: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest # <--- FIX HERE
        # tags: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest,${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}  
 
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+       creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Add SSH Key to VM
+      run: |
+        local name="mySSHVM"
+        local resource_group="MyResourceGroup"
+        local location="eastus" # Changed to a more common region, you can adjust
+        local image="Ubuntu2404"
+        local size="Standard_D2s_v3"
+        local admin_username="azureuser"
+        --ssh-key-value "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDD1Cbb3BHaqGHYHsEEenWaKOou0exeqmnOpjow15yEUSRnw7yaJRpOoPyuYR4w1HuJnXCJG0jPb0BA9t3AOfQBNY9yte2N9prgYFdySS1TLSkqM9s+bC1XQ095ouHJq29HLP/4U/udPklMpNuO72wEvl2BNHj4jB4p/hs0+5VMYJRSrAnpJRoT/vbPnzcoxwMtTLEVOnyruEB1DY8y4H9w1zUkgdHiAg6fnxqn0uZwou+m9eE8nqEy9Nm5YXJC/boXqK3F3O0YkdAaIa0KZeO/aiZZe2JM02s7+LtE18DIlp48+jkU0quT4lyDwqMcmw4DR5c85zglTua1GBOgiVn9convenati@gmail.com"
+    
+        echo "--- Starting Azure VM SSH Setup Script ---"
+    
+       
+        # 3. Create Resource Group if it doesn't exist
+        echo "Creating resource group '$resource_group' in '$location' (if it doesn't exist)..."
+        az group create --name "$resource_group" --location "$location" --output none
+        if [ $? -ne 0 ]; then
+            echo "Error: Failed to create or verify resource group '$resource_group'. Exiting."
+            exit 1
+        fi
+        echo "Resource group '$resource_group' is ready."
+    
+        # 4. Create VM with SSH key (auto-generates if not present)
+        echo "Creating Azure VM '$name'..."
+        az vm create \
+            --name "$name" \
+            --resource-group "$resource_group" \
+            --location "$location" \
+            --image "$image" \
+            --size "$size" \
+            --admin-username "$admin_username" \
+            --generate-ssh-keys \
+            --output jsonc # Use jsonc for better readability of output
+    
+        if [ $? -ne 0 ]; then
+            echo "Error: Failed to create VM '$name'. Exiting."
+            exit 1
+        fi
+        echo "VM '$name' created successfully."
+    
+        # 5. Get the Public IP Address of the VM
+        echo "Retrieving public IP address for VM '$name'..."
+        PUBLIC_IP=$(az vm show \
+            --resource-group "$resource_group" \
+            --name "$name" \
+            --show-details \
+            --query "publicIps" \
+            --output tsv)
+    
+        if [ -z "$PUBLIC_IP" ]; then
+            echo "Error: Could not retrieve public IP address for VM. Exiting."
+            exit 1
+        fi
+        echo "VM '$name' public IP: $PUBLIC_IP"
+    
+        # 6. Open required ports
+        echo "Opening SSH port (22)..."
+        az vm open-port -g "$resource_group" -n "$name" --port 22 --priority 100 --output none
+        echo "Opening HTTP port (80)..."
+        az vm open-port -g "$resource_group" -n "$name" --port 80 --priority 101 --output none
+        echo "Opening custom port (5000)..."
+        az vm open-port -g "$resource_group" -n "$name" --port 5000 --priority 102 --output none
+        echo "Required ports are now open."
+    
+        echo "--- VM Setup Complete! ---"
+        echo "You can now connect to your VM using SSH:"
+        echo "ssh -i $ssh_key_path $admin_username@$PUBLIC_IP"
+        echo ""
+        echo "Remember to secure your SSH private key ($ssh_key_path) and consider restricting NSG rules for production environments."
+        }
+    
+
     - name: Deploy to Linux VM
       uses: appleboy/ssh-action@v1.0.0
       with:
