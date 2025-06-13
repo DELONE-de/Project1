@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  backend:
+    image: convenat2007/backend:version
+    build: ./Backend
+    ports:
+      - "5000:5000"
+    networks:
+      - app-network
+
+  frontend:
+    image: convenat2007/frontend:version
+    build: ./frontend
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - app-network
+
+networks:
+  app-network:
+
