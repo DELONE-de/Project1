@@ -102,14 +102,21 @@ jobs:
         with:
           azcliversion: latest
           inlineScript: |
-           PUBLIC_IP=$(
-           az vm show\
-           --resource-group "$resource_group"\
-           --name "$name"
-           --show-details \
-           --query publicIps\
-           --output tsv)
-          echo "vm ip is: $PUBLIC_IP " >> $ GITHUB_ENV
+    
+           PUBLIC_IP=$(az vm show \
+           --resource-group "${{ env.RESOURCE_GROUP }}" \
+           --name "${{ env.VM_NAME }}" \
+            --show-details \
+            --query publicIps \
+            --output tsv)
+            if [ -z "$PUBLIC_IP" ]; then
+             echo "Error: Could not retrieve public IP address for VM '${{ env.VM_NAME }}'."
+             exit 1
+             fi
+    
+             echo "Retrieved VM Public IP: $PUBLIC_IP"
+            echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
+            echo "vm ip is: $PUBLIC_IP " >> $ GITHUB_ENV
 
       - name: Deploy to VM
         uses: appleboy/ssh-action@v0.1.10
