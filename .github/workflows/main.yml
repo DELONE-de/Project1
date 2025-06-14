@@ -83,10 +83,14 @@ jobs:
                 --generate-ssh-keys \
   
         
-                      if [ $? -ne 0 ]; then
-                    echo "Error: Failed to create VM '$name'. Exiting."
-                    exit 1
-                fi
+                  if [ $? -ne 0 ]; then
+                  echo "Error: Failed to create VM '$name'. Exiting."
+                   exit 1
+                  fi
+               
+                 az vm show -g "$resource_group" p -n "$name -o json > vm_output.json
+
+                jq -r .publicIps vm_output.json
 
                
           -name: get public ip
