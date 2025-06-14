@@ -71,7 +71,7 @@ jobs:
                 --image "$image" \
                 --size "$size" \
                 --admin-username "$admin_username" \
-                --ssh-key-values "${{ secrets.SSH_KEY }}" \
+                --ssh-key-values "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDD1Cbb3BHaqGHYHsEEenWaKOou0exeqmnOpjow15yEUSRnw7yaJRpOoPyuYR4w1HuJnXCJG0jPb0BA9t3AOfQBNY9yte2N9prgYFdySS1TLSkqM9s+bC1XQ095ouHJq29HLP/4U/udPklMpNuO72wEvl2BNHj4jB4p/hs0+5VMYJRSrAnpJRoT/vbPnzcoxwMtTLEVOnyruEB1DY8y4H9w1zUkgdHiAg6fnxqn0uZwou+m9eE8nqEy9Nm5YXJC/boXqK3F3O0YkdAaIa0KZeO/aiZZe2JM02s7+LtE18DIlp48+jkU0quT4lyDwqMcmw4DR5c85zglTua1GBOgiVn9convenati@gmail.com" \
                 --public-ip-sku Standard
             
             PUBLIC_IP=$(az vm show \
