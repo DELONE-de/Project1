@@ -81,7 +81,7 @@ jobs:
                 --size "$size" \
                 --admin-username "$admin_username" \
                 --generate-ssh-keys \
-                --output jsonc # Use jsonc for better readability of output
+  
         
                       if [ $? -ne 0 ]; then
                     echo "Error: Failed to create VM '$name'. Exiting."
