@@ -65,7 +65,13 @@ jobs:
             size="Standard_D2s_v3"
             admin_username="azureuser"
 
-              az group create --name $resource_group --location $location
+                  echo "Creating resource group '$resource_group' in '$location' (if it doesn't exist)..."
+                  az group create --name "$resource_group" --location "$location" --output none
+                  if [ $? -ne 0 ]; then
+                      echo "Error: Failed to create or verify resource group '$resource_group'. Exiting."
+                      exit 1
+                  fi
+                  echo "Resource group '$resource_group' is ready."
             
               az vm create \
                 --resource-group "$resource_group" \
