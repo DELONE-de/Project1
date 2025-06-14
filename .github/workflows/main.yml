@@ -72,16 +72,22 @@ jobs:
                       exit 1
                   fi
                   echo "Resource group '$resource_group' is ready."
-            
-              az vm create \
-                --resource-group "$resource_group" \
+                    
+                 az vm create \
                 --name "$name" \
+                --resource-group "$resource_group" \
+                --location "$location" \
                 --image "$image" \
                 --size "$size" \
                 --admin-username "$admin_username" \
                 --generate-ssh-keys \
-                --public-ip-sku Standard
-
+                --output jsonc # Use jsonc for better readability of output
+        
+                if [ $? -ne 0 ]; then
+                    echo "Error: Failed to create VM '$name'. Exiting."
+                    exit 1
+                fi
+                
              echo "Ensuring SSH port (22) is open..."
             az vm open-port -g "$resource_group" -n "$name" --port 22 --priority 100 --output none
             echo "Ensuring HTTP port (80) is open..."
