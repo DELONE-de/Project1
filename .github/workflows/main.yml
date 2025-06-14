@@ -89,8 +89,8 @@ jobs:
                  # fi
                
                
-          -name: get public ip
-          run: |
+      - name: get public ip
+        run: |
            VM_IP=$(az vm list-ip-addresses 
            -g "$resource_group"
            -n "$name"--query "[].virtualMachine.network.publicIpAddresses[0].ipAddress" )
