@@ -160,7 +160,7 @@ jobs:
       - name: docker pull & compose up
         uses: appleboy/ssh-action@master
         with:
-         host: ${{PUBLIC_IP}}
+         host: "$PUBLIC_IP"
          username: azureuser
          key: ${{ secrets.SSH_PRIVATE_KEY }}
          script: |
