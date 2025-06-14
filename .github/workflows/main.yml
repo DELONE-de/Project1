@@ -32,7 +32,9 @@ jobs:
           context: ./Backend
           file: ./Backend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}
 
       - name: Build and Push Frontend image
         uses: docker/build-push-action@v5
@@ -40,21 +42,22 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
 
       - name: Azure Login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: bcf358c5-3984-4d0b-a2fa-c522b68d8036
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Create Azure VM and Configure
         uses: azure/cli@v2
         with:
           azcliversion: latest
           inlineScript: |
-            # Define variables
             name="mySSHVM"
             resource_group="MyResourceGroup"
             location="eastus"
@@ -62,82 +65,47 @@ jobs:
             size="Standard_D2s_v3"
             admin_username="azureuser"
             
-            echo "--- Starting Azure VM SSH Setup Script ---"
-      
-            # 3. Create Resource Group if it doesn't exist
-            echo "Creating resource group '$resource_group' in '$location' (if it doesn't exist)..."
-            az group create --name "$resource_group" --location "$location" --output none
-            if [ $? -ne 0 ]; then
-                echo "Error: Failed to create or verify resource group '$resource_group'. Exiting."
-                exit 1
-            fi
-            echo "Resource group '$resource_group' is ready."
-      
-            # --- Check if VM already exists ---
-            echo "Checking if VM '$name' already exists..."
+            echo "Creating/verifying resource group..."
+            az group create --name "$resource_group" --location "$location"
+            
+            echo "Checking if VM exists..."
             VM_EXISTS=$(az vm show \
-                --resource-group "$resource_group" \
-                --name "$name" \
-                --query "name" \
-                --output tsv 2>/dev/null) # Redirect stderr to /dev/null to suppress "ResourceNotFound" errors
-      
+              --resource-group "$resource_group" \
+              --name "$name" \
+            
             if [ -z "$VM_EXISTS" ]; then
-                # 4. Create VM with SSH key ONLY if it doesn't exist
-                echo "VM '$name' does not exist. Creating now..."
-                az vm create \
-                    --name "$name" \
-                    --resource-group "$resource_group" \
-                    --location "$location" \
-                    --image "$image" \
-                    --size "$size" \
-                    --admin-username "$admin_username" \
-                    --generate-ssh-keys \
-                    --output jsonc
-                
-                # Capture the path of the generated private key for later use if needed
-                SSH_PRIVATE_KEY_PATH="/home/runner/.ssh/id_rsa"
-                echo "SSH_PRIVATE_KEY_PATH=$SSH_PRIVATE_KEY_PATH" >> $GITHUB_ENV
-                
-                if [ $? -ne 0 ]; then
-                    echo "Error: Failed to create VM '$name'. Exiting."
-                    exit 1
-                fi
-                echo "VM '$name' created successfully."
-            else
-                echo "VM '$name' already exists. Skipping VM creation step."
-                # If the VM already exists, you still need to get its public IP to proceed
-            fi
-      
-            # 5. Get the Public IP Address of the VM (always get it, whether created or existing)
-            echo "Retrieving public IP address for VM '$name'..."
-            PUBLIC_IP=$(az vm show \
+              echo "Creating new VM..."
+              az vm create \
                 --resource-group "$resource_group" \
                 --name "$name" \
-                --show-details \
-                --query "publicIps" \
-                --output tsv)
+                --image "$image" \
+                --size "$size" \
+                --admin-username "$admin_username" \
+                --ssh-key-values "${{ secrets.SSH_KEY }}" \
+                --public-ip-sku Standard
+            fi
+            
+            echo "Getting VM public IP..."
+            PUBLIC_IP=$(az vm show \
+              --resource-group "$resource_group" \
+              --name "$name" \
+              --show-details \
+            
+            if [ -z "$PUBLIC_IP" ]; then
+              echo "Failed to get public IP"
+              exit 1
+            fi
             
             echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
-      
-            if [ -z "$PUBLIC_IP" ]; then
-                echo "Error: Could not retrieve public IP address for VM. Exiting."
-                exit 1
-            fi
-            echo "VM '$name' public IP: $PUBLIC_IP"
-      
-            # 6. Open required ports (These can usually be re-applied safely)
-            echo "Ensuring SSH port (22) is open..."
-            az vm open-port -g "$resource_group" -n "$name" --port 22 --priority 100 --output none
-            echo "Ensuring HTTP port (80) is open..."
-            az vm open-port -g "$resource_group" -n "$name" --port 80 --priority 101 --output none
-            echo "Ensuring custom port (5000) is open..."
-            az vm open-port -g "$resource_group" -n "$name" --port 5000 --priority 102 --output none
-            echo "Required ports are now configured."
-      
-            echo "--- VM Setup Complete! ---"
-            echo "To connect manually, use: ssh -i <path_to_private_key> $admin_username@$PUBLIC_IP"
-            echo "Remember to secure your private key and consider restricting NSG rules for production."
-            # Removed the duplicated block below this line!
+            
+            echo "Configuring network ports..."
+            az network nsg rule create \
+              --resource-group "$resource_group" \
+              --nsg-name "${name}NSG" \
+              --name "AllowPorts" \
+              --priority 100 \
+              --destination-port-ranges 22 80 5000
+
       - name: Deploy to VM
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -145,9 +113,19 @@ jobs:
           username: azureuser
           key: ${{ secrets.SSH_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
+            # Pull latest images
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
+            
+            # Setup app directory
             mkdir -p /app
             cd /app
+            
+            # Stop existing containers
             docker compose down || true
+            
+            # Start new containers with health check
             docker compose up -d
+            
+            # Wait for services to be healthy
+            timeout 60s bash -c 'until docker compose ps | grep -q "(healthy)"; do sleep 2; done'
