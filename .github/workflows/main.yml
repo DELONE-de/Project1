@@ -53,7 +53,7 @@ jobs:
         uses: azure/cli@v2
         with:
           azcliversion: latest
-          inlineScript:  |
+          inlineScript: |
             # Define variables
             name="mySSHVM"
             resource_group="MyResourceGroup"
@@ -92,7 +92,7 @@ jobs:
                     --size "$size" \
                     --admin-username "$admin_username" \
                     --generate-ssh-keys \
-                    --output jsonc # <-- No backslash on the last line of the command
+                    --output jsonc
                 
                 # Capture the path of the generated private key for later use if needed
                 SSH_PRIVATE_KEY_PATH="/home/runner/.ssh/id_rsa"
@@ -137,42 +137,7 @@ jobs:
             echo "--- VM Setup Complete! ---"
             echo "To connect manually, use: ssh -i <path_to_private_key> $admin_username@$PUBLIC_IP"
             echo "Remember to secure your private key and consider restricting NSG rules for production."
-                  name="mySSHVM"
-                  resource_group="MyResourceGroup"
-                  location="eastus"
-                  image="Ubuntu2404"
-                  size="Standard_D2s_v3"
-                  admin_username="azureuser"
-      
-                  az group create --name "$resource_group" --location "$location"
-      
-                  az vm create \
-                    --name "$name" \
-                    --resource-group "$resource_group" \
-                    --image "$image" \
-                    --size "$size" \
-                    --admin-username "$admin_username" \
-                    --generate-ssh-keys\
-                    --output json
-      
-                  SSH_KEY_PATH="/home/runner/.ssh/id_rsa"
-                  echo "SSH_KEY=$(cat $SSH_KEY_PATH)" >> $GITHUB_ENV
-      
-      
-                  PUBLIC_IP=$(az vm show \
-                    --resource-group "$resource_group" \
-                    --name "$name" \
-                    --show-details \
-                    --query "publicIps" \
-                    --output tsv)
-                  
-                  echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
-                  
-                  az vm open-port \
-                    --resource-group "$resource_group" \
-                    --name "$name" \
-                    --port "22,80,5000"
-
+            # Removed the duplicated block below this line!
       - name: Deploy to VM
         uses: appleboy/ssh-action@v0.1.10
         with:
