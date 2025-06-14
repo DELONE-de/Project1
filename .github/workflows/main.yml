@@ -65,42 +65,37 @@ jobs:
             size="Standard_D2s_v3"
             admin_username="azureuser"
 
-                  echo "Creating resource group '$resource_group' in '$location' (if it doesn't exist)..."
-                  az group create --name "$resource_group" --location "$location" --output none
-                  if [ $? -ne 0 ]; then
-                      echo "Error: Failed to create or verify resource group '$resource_group'. Exiting."
+                # echo "Creating resource group '$resource_group' in '$location' (if it doesn't exist)..."
+                 # az group create --name "$resource_group" --location "$location" --output none
+                  #if [ $? -ne 0 ]; then
+                   #   echo "Error: Failed to create or verify resource group '$resource_group'. Exiting."
                       exit 1
-                  fi
-                  echo "Resource group '$resource_group' is ready."
+                 # fi
+                  #echo "Resource group '$resource_group' is ready."
                     
-                 az vm create \
-                --name "$name" \
-                --resource-group "$resource_group" \
-                --location "$location" \
-                --image "$image" \
-                --size "$size" \
-                --admin-username "$admin_username" \
-                --generate-ssh-keys \
+                 #az vm create \
+                #--name "$name" \
+                #--resource-group "$resource_group" \
+                #--location "$location" \
+                #--image "$image" \
+                #--size "$size" \
+                #--admin-username "$admin_username" \
+                #--generate-ssh-keys \
   
         
-                  if [ $? -ne 0 ]; then
-                  echo "Error: Failed to create VM '$name'. Exiting."
-                   exit 1
-                  fi
+                 # if [ $? -ne 0 ]; then
+                  # echo "Error: Failed to create VM '$name'. Exiting."
+                   # exit 1
+                 # fi
                
-                 az vm show -g "$resource_group" p -n "$name -o json > vm_output.json
-
-                jq -r .publicIps vm_output.json
-
                
           -name: get public ip
           run: |
-           VM_IP=$(az vm show -g "$resource_group" -n "$name" --query publicIps -o tsv)
-             if [ -z "$VM_IP" ]; then
-            echo "Error: Could not retrieve public IP address "
-            exit 1
-           fi
-
+           VM_IP=$(az vm list-ip-addresses 
+           -g "$resource_group"
+           -n "$name"--query "[].virtualMachine.network.publicIpAddresses[0].ipAddress" )
+           --output tsv
+    
             echo "VM_IP=$VM_IP" >> $GITHUB_ENV
             echo "VM_USERNAME=$ADMIN_USERNAME" >> $GITHUB_ENV
             echo "SSH_PRIVATE_KEY_PATH=/root/.ssh/id_rsa">> $GITHUB_ENV
