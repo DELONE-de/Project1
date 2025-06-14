@@ -121,7 +121,7 @@ jobs:
       - name: SSH and run commands on Azure VM
         uses: appleboy/ssh-action@master
         with:
-          host: "$PUBLIC_IP"
+          host: ${{ env.PUBLIC_IP }}"
           username: azureuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
@@ -160,7 +160,7 @@ jobs:
       - name: docker pull & compose up
         uses: appleboy/ssh-action@master
         with:
-         host: "$PUBLIC_IP"
+         host:  ${{ env.PUBLIC_IP }}
          username: azureuser
          key: ${{ secrets.SSH_PRIVATE_KEY }}
          script: |
