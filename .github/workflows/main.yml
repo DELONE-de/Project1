@@ -96,23 +96,16 @@ jobs:
             echo "Error: Could not retrieve public IP address "
             exit 1
            fi
-           echo "VM_IP=$VM_IP" >> $GITHUB_ENV
 
-                 echo "VM_IP=$VM_IP" >> $GITHUB_ENV
-                echo "VM_USERNAME=$ADMIN_USERNAME" >> $GITHUB_ENV
-                 echo "/root/.ssh/id_rsa" >> $GITHUB_ENV
-                 
-             - name: Verify SSH Key Location and Permissions (Optional, for debugging)
-               run: |
-                ls -la ~/.ssh/
-                echo "Permissions of id_rsa:"
-                stat -c "%a %n" "${{ env.SSH_PRIVATE_KEY_PATH }}"
+            echo "VM_IP=$VM_IP" >> $GITHUB_ENV
+            echo "VM_USERNAME=$ADMIN_USERNAME" >> $GITHUB_ENV
+            echo "SSH_PRIVATE_KEY_PATH=/root/.ssh/id_rsa">> $GITHUB_ENV
+
 
             - name: Wait for VM to be ready for SSH
               run: |
               for i in {1..10}; do
                   if ssh -o BatchMode=yes -o ConnectTimeout=5 -i "${{ env.SSH_PRIVATE_KEY_PATH }}" "${{ env.VM_USERNAME }}"@"${{ env.VM_IP }}" "exit"; then
-                    echo "VM is ready for SSH!"
                     break
                   fi
                   echo "Attempt $i failed. Retrying in 30 seconds..."
