@@ -53,42 +53,125 @@ jobs:
         uses: azure/cli@v2
         with:
           azcliversion: latest
-          inlineScript: |
+          inlineScript:  |
+            # Define variables
             name="mySSHVM"
             resource_group="MyResourceGroup"
             location="eastus"
             image="Ubuntu2404"
             size="Standard_D2s_v3"
             admin_username="azureuser"
-
-            az group create --name "$resource_group" --location "$location"
-
-            az vm create \
-              --name "$name" \
-              --resource-group "$resource_group" \
-              --image "$image" \
-              --size "$size" \
-              --admin-username "$admin_username" \
-              --generate-ssh-keys\
-              --output json
-
-            SSH_KEY_PATH="/home/runner/.ssh/id_rsa"
-            echo "SSH_KEY=$(cat $SSH_KEY_PATH)" >> $GITHUB_ENV
-
-
+            
+            echo "--- Starting Azure VM SSH Setup Script ---"
+      
+            # 3. Create Resource Group if it doesn't exist
+            echo "Creating resource group '$resource_group' in '$location' (if it doesn't exist)..."
+            az group create --name "$resource_group" --location "$location" --output none
+            if [ $? -ne 0 ]; then
+                echo "Error: Failed to create or verify resource group '$resource_group'. Exiting."
+                exit 1
+            fi
+            echo "Resource group '$resource_group' is ready."
+      
+            # --- Check if VM already exists ---
+            echo "Checking if VM '$name' already exists..."
+            VM_EXISTS=$(az vm show \
+                --resource-group "$resource_group" \
+                --name "$name" \
+                --query "name" \
+                --output tsv 2>/dev/null) # Redirect stderr to /dev/null to suppress "ResourceNotFound" errors
+      
+            if [ -z "$VM_EXISTS" ]; then
+                # 4. Create VM with SSH key ONLY if it doesn't exist
+                echo "VM '$name' does not exist. Creating now..."
+                az vm create \
+                    --name "$name" \
+                    --resource-group "$resource_group" \
+                    --location "$location" \
+                    --image "$image" \
+                    --size "$size" \
+                    --admin-username "$admin_username" \
+                    --generate-ssh-keys \
+                    --output jsonc # <-- No backslash on the last line of the command
+                
+                # Capture the path of the generated private key for later use if needed
+                SSH_PRIVATE_KEY_PATH="/home/runner/.ssh/id_rsa"
+                echo "SSH_PRIVATE_KEY_PATH=$SSH_PRIVATE_KEY_PATH" >> $GITHUB_ENV
+                
+                if [ $? -ne 0 ]; then
+                    echo "Error: Failed to create VM '$name'. Exiting."
+                    exit 1
+                fi
+                echo "VM '$name' created successfully."
+            else
+                echo "VM '$name' already exists. Skipping VM creation step."
+                # If the VM already exists, you still need to get its public IP to proceed
+            fi
+      
+            # 5. Get the Public IP Address of the VM (always get it, whether created or existing)
+            echo "Retrieving public IP address for VM '$name'..."
             PUBLIC_IP=$(az vm show \
-              --resource-group "$resource_group" \
-              --name "$name" \
-              --show-details \
-              --query "publicIps" \
-              --output tsv)
+                --resource-group "$resource_group" \
+                --name "$name" \
+                --show-details \
+                --query "publicIps" \
+                --output tsv)
             
             echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
-            
-            az vm open-port \
-              --resource-group "$resource_group" \
-              --name "$name" \
-              --port "22,80,5000"
+      
+            if [ -z "$PUBLIC_IP" ]; then
+                echo "Error: Could not retrieve public IP address for VM. Exiting."
+                exit 1
+            fi
+            echo "VM '$name' public IP: $PUBLIC_IP"
+      
+            # 6. Open required ports (These can usually be re-applied safely)
+            echo "Ensuring SSH port (22) is open..."
+            az vm open-port -g "$resource_group" -n "$name" --port 22 --priority 100 --output none
+            echo "Ensuring HTTP port (80) is open..."
+            az vm open-port -g "$resource_group" -n "$name" --port 80 --priority 101 --output none
+            echo "Ensuring custom port (5000) is open..."
+            az vm open-port -g "$resource_group" -n "$name" --port 5000 --priority 102 --output none
+            echo "Required ports are now configured."
+      
+            echo "--- VM Setup Complete! ---"
+            echo "To connect manually, use: ssh -i <path_to_private_key> $admin_username@$PUBLIC_IP"
+            echo "Remember to secure your private key and consider restricting NSG rules for production."
+                  name="mySSHVM"
+                  resource_group="MyResourceGroup"
+                  location="eastus"
+                  image="Ubuntu2404"
+                  size="Standard_D2s_v3"
+                  admin_username="azureuser"
+      
+                  az group create --name "$resource_group" --location "$location"
+      
+                  az vm create \
+                    --name "$name" \
+                    --resource-group "$resource_group" \
+                    --image "$image" \
+                    --size "$size" \
+                    --admin-username "$admin_username" \
+                    --generate-ssh-keys\
+                    --output json
+      
+                  SSH_KEY_PATH="/home/runner/.ssh/id_rsa"
+                  echo "SSH_KEY=$(cat $SSH_KEY_PATH)" >> $GITHUB_ENV
+      
+      
+                  PUBLIC_IP=$(az vm show \
+                    --resource-group "$resource_group" \
+                    --name "$name" \
+                    --show-details \
+                    --query "publicIps" \
+                    --output tsv)
+                  
+                  echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
+                  
+                  az vm open-port \
+                    --resource-group "$resource_group" \
+                    --name "$name" \
+                    --port "22,80,5000"
 
       - name: Deploy to VM
         uses: appleboy/ssh-action@v0.1.10
