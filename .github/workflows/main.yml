@@ -83,13 +83,20 @@ jobs:
                 --generate-ssh-keys \
                 --output jsonc # Use jsonc for better readability of output
         
-                if [ $? -ne 0 ]; then
+                      if [ $? -ne 0 ]; then
                     echo "Error: Failed to create VM '$name'. Exiting."
                     exit 1
                 fi
 
-                 VM_IP=$(jq -r '.publicIpAddress' vm_output.json)
-                 echo "VM '$VM_NAME' created with IP: $VM_IP"
+               
+          -name: get public ip
+          run: |
+           VM_IP=$(az vm show -g "$resource_group" -n "$name" --query publicIps -o tsv)
+             if [ -z "$VM_IP" ]; then
+            echo "Error: Could not retrieve public IP address "
+            exit 1
+           fi
+           echo "VM_IP=$VM_IP" >> $GITHUB_ENV
 
                  echo "VM_IP=$VM_IP" >> $GITHUB_ENV
                 echo "VM_USERNAME=$ADMIN_USERNAME" >> $GITHUB_ENV
