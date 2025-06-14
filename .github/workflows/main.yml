@@ -104,8 +104,8 @@ jobs:
           inlineScript: |
     
            PUBLIC_IP=$(az vm show \
-           --resource-group "${{ env.RESOURCE_GROUP }}" \
-           --name "${{ env.VM_NAME }}" \
+           --resource-group "MyResourceGroup" \
+           --name "mySSHVM" \
             --show-details \
             --query publicIps \
             --output tsv)
