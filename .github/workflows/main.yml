@@ -69,7 +69,7 @@ jobs:
               --image "$image" \
               --size "$size" \
               --admin-username "$admin_username" \
-              --generate-ssh-keys
+              --generate-ssh-keys\
               --output json
 
             SSH_KEY_PATH="/home/runner/.ssh/id_rsa"
