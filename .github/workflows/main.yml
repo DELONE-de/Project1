@@ -118,26 +118,58 @@ jobs:
             echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
             echo "vm ip is: $PUBLIC_IP " >> $ GITHUB_ENV
 
-      - name: Deploy to VM
-        uses: appleboy/ssh-action@v0.1.10
+      - name: SSH and run commands on Azure VM
+        uses: appleboy/ssh-action@master
         with:
-         host: "$PUBLIC_IP"
-         username: "$USER"
-         key: ${{ secrets.SSH_KEY }}
+          host: ${{PUBLIC_IP}}
+          username: azureuser
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+              echo "updating apt pakage index...."
+              sudo apt-get update -y
+              echo "Installing git..."
+              sudo apt-get install -y git
+              echo "installing docker and docker-compose..."
+              sudo apt -get install -y \
+                ca-certificates \
+                curl \
+                gnupg \
+                lsb-release
+              sudo mkdir -p /etc/apt/keyrings
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+              echo \
+                "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+                $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+                sudo apt-get update -y
+                sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+                echo "adding user to docker group..."
+                sudo usermod -aG docker azureuser
+                echo "creating app directory and cloning repo..."
+                APP_DIR= "/home/azureuser/app"
+                REPO_URL="https://github.com/DELONE-de/Project1.git"
+                BRANCH="main"
+                if[ -d "$APP_DIR/.git" ]; then
+                    echo "repo already cloned, pulling latest changes..."
+                    cd "$APP_DIR" && git pull origin "$BRANCH"
+                else
+                    echo "Cloning new repo into $APP_DIR..."
+                    git clone -b "$BRANCH" "$REPO_URL" "$APP_DIR"
+                    mkdir -p "$APP_DIR"
+                fi
+      - name: docker pull & compose up
+        uses: appleboy/ssh-action@master
+        with:
+         host: ${{PUBLIC_IP}}
+         username: azureuser
+         key: ${{ secrets.SSH_PRIVATE_KEY }}
          script: |
-            # Pull latest images
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
-                
-            # Setup app directory
-            mkdir -p /app
-            cd /app
-                
-            # Stop existing containers
-            docker compose down || true
-                
-            # Start new containers with health check
-            docker compose up -d
-                
-            # Wait for services to be healthy
-            timeout 60s bash -c 'until docker compose ps | grep -q "(healthy)"; do sleep 2; done'
+           echo "nagivating to app directory..."
+            cd /home/azureuser/app
+             echo "pulling latest docker images..."
+              docker compose pull
+              echo "starting docker compose..."
+              docker compose up -d
+              echo "listting running containers..."
+              docker ps -a
+                 
