@@ -87,7 +87,7 @@ jobs:
       - name: Deploy to VM
         uses: appleboy/ssh-action@v0.1.10
         with:
-          host: ${{ env.PUBLIC_IP }}
+          host: 172.172.147.144
           username: azureuser
           key: ${{ secrets.SSH_KEY }}
           script: |
