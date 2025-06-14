@@ -65,8 +65,6 @@ jobs:
             size="Standard_D2s_v3"
             admin_username="azureuser"
             
-            echo "Creating/verifying resource group..."
-            az group create --name "$resource_group" --location "$location"
             
             echo "Checking if VM exists..."
             VM_EXISTS=$(az vm show \
