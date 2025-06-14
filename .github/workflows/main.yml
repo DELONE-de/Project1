@@ -71,8 +71,22 @@ jobs:
                 --image "$image" \
                 --size "$size" \
                 --admin-username "$admin_username" \
-                --ssh-key-values -----BEGIN RSA PRIVATE KEY-----MIIEowIBAAKCAQEAw9Qm29wR2qhh2B7BBHp1mijqLtHsXqppzqY6MNechFEkZ8O8miUaTqD8rmEeMNR7iZ1wiRtIz29AQPbdwDn0ATWPcrXtjfaa4GBXckktUy0pKjPbPmwtV0NPeaLhyatvRyz/+FP7nT5JTKTbju9sBL5dgTR4+IweKf4bNPuVTGCUUqwJ6SUaE/72z583KMcDLUyxFTp8q7hAdQ2PMuB/cNc1JIHR4gIOn58ap9LmcKLvpvXhPJ6hMvTZuWFyQv26F6itxdztGJHQGiGtCmXjv2omWXtiTNNrO/i7RNfAyJaePPo5FNKrk+Jcg8KjHJsOA0eXPOc4JU7mtRgToIlZ/QIDAQABAoIBADc471BWqc5AZ38bhRCvO9SiLw/O8NntMnMs2wIE+0Uw4JRGVTwetGFx8m92QZ5BfSjcdeyj/g9I7xSiyPu5G/7vTKlrdjbvUNNvN5mp2xc2iAI3p17eAJc4CwRhE0zchD/NB83OWQkJlIABiUywZYSc7h9OXcKxOJxc5O02+O4VWzwOWxSkKtTbH+Q1N8rNBLB7J2lm8jIcfUBUhR/Fw3pFiRVNqujoi8kfsTvP3qiEeHy+VbD1TvYyJgbJeR1mSVCek6ZJTA2nw8/JkUbstHZzugGDrlyicvT6/Onlasb6uip8IT6EQzTOZNA2NvipffvrfK3S/OWjV89e3AKlmX0CgYEA9uW9P2ri20JeHyxxH75hPAClfhFrH5jOZZtplRzvAaLqZjk+ULKEn+JJEdlONkPcheGdGS0XnQf1CA3fqnWz/cma4YEFlUyGbfvb5sjv2M2+soX4Sff/b1SkckdEq+pVOai6eOoNZ+uRGZ5DlrbBRPhQq3j3Mr3K56tAeIhx+RMCgYEAywxq0growScRhL336oHIUJgFy+gBA9MBIps57tyKu7yKXt8ztdfT6k35A0le706nyUOY09EmzQsqbMW8YEX5uuEi+VhtwgBhTRjWWPhPAJSb4+ZiCClgcxg93C8lgJqi83JEDG12E2x0T/NZE893Xw4TIRr5hwmDHgsX7fbIUq8CgYBZHY1UYZkmeOsOJ3Vhds8T4EvbmB/pVLdS12ihqMLf/VTLtue2KulR6FRle+EOFyp2rHuOxcbbKC8aTB+qIDfqZ6Vetbo1LFztP9Yck/R2dbTaLR70W+432f5NPUodH0TJvgwobpqOIunJrGVK9gYGhfZgHhZjmzusqRRpLR6uPwKBgHGAHW4P/w+JYTeMYTrLFUhH0mWq6HZUyrunfXjR+xL6T3a82dD6NlExCNMXfmPS2eOdT56HuWLArRRka+p88x3Nn5k2HxRk1f8ctSTCmJbAe2unaoEZb/qmQF4GVLZQumnPI862mVw+Mb5HTzHNtPKDkZnd1EHxxUNT/Cpe2petAoGBAL6FOf+fc8NWG0hY3gcAeGT8Xr0wIKlf5ZksxZkEGDlJHulzCAaMfAILgM+hSXASlSVCxdPVO3y076jHHkPZ2akMbM6NdV/RuKpxmFyJJ7McTYmay+biI7pSQ6lwiHgcCJJZOXqg3q4HTK5YqKl1x17y09pPxG14JlyK4rpV3TiU-----END RSA PRIVATE KEY-----  
+                --generate-ssh-keys \
                 --public-ip-sku Standard
+
+                echo "Capturing generated SSH private key..."
+                  SSH_PRIVATE_KEY_FILE="/home/runner/.ssh/id_rsa"
+                  
+               
+                  
+                      echo "GENERATED_SSH_KEY<<EOF"
+                      cat "$SSH_PRIVATE_KEY_FILE"
+                      echo "EOF"
+                   >> $GITHUB_ENV
+                  
+              
+                  echo "SSH_PRIVATE_KEY_PATH=$SSH_PRIVATE_KEY_FILE" >> $GITHUB_ENV
+                  echo "Private key captured and available as GENERATED_SSH_KEY."
                
             az network nsg rule create \
               --resource-group "$resource_group" \
