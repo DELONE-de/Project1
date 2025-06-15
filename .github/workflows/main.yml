@@ -152,10 +152,10 @@ jobs:
                 echo "adding user to docker group..."
                 sudo usermod -aG docker azureuser
                 echo "creating app directory and cloning repo..."
-                APP_DIR= "/home/azureuser/app"
+                APP_DIR= "/home/azureuser/Project1"
                 REPO_URL="https://github.com/DELONE-de/Project1.git"
                 BRANCH="main"
-                if[ -d "$APP_DIR/.git" ]; then
+                if [ -d "$APP_DIR/.git" ]; then
                     echo "repo already cloned, pulling latest changes..."
                     cd "$APP_DIR" && git pull origin "$BRANCH"
                 else
