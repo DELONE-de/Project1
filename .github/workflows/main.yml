@@ -119,8 +119,7 @@ jobs:
             echo "cleaned_ip: $clean_ip"
             
              echo "Retrieved VM Public IP: $clean_ip"
-            echo "PUBLIC_IP=$clean_ip" >> $GITHUB_ENV
-            echo "vm ip is: $clean_ip " >> $ GITHUB_ENV
+             clean_ip="$clean_ip" >> $GITHUB_ENV
             
       
 
@@ -128,7 +127,7 @@ jobs:
       - name: SSH and run commands on Azure VM
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ env.PUBLIC_IP }}"
+          host: ${{ env.clean_ip }}
           username: azureuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
