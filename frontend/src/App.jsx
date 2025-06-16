@@ -14,7 +14,7 @@ const App = () => {
   useEffect(() => {
     // Define the URL of your Express backend API
     // Ensure this matches the port your Express server is running on
-    const backendUrl = 'http://localhost:5000/api/message';
+    const backendUrl = 'http://localhost:5000';
 
     const fetchMessage = async () => {
       try {
