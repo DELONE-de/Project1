@@ -180,7 +180,7 @@ jobs:
          key: ${{ secrets.SSH_PRIVATE_KEY }}
          script: |
            echo "nagivating to app directory..."
-            cd /home/azureuser/app
+            cd /home/azureuser/Project1
              echo "pulling latest docker images..."
               docker compose pull
               echo "starting docker compose..."
