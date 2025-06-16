@@ -10,7 +10,7 @@ app.use(cors());
 
 app.use(express.json());
 
-app.get('/api/message', (req, res) => {
+app.get('/', (req, res) => {
   console.log('Received request for /api/message');
   res.json({ message: 'THIS IS MY TECH_CRUSH BACKEND!' });
 });
