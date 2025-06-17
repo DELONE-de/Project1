@@ -1,4 +1,4 @@
-|
+
            name="mySSHVM" >> $GITHUB_ENV
             resource_group="MyResourceGroup" >> $GITHUB_ENV
             location="eastus" >> $GITHUB_ENV
