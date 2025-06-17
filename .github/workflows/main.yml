@@ -46,145 +46,144 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    # - name: Azure Login
+    #   uses: azure/login@v2
+    #    with:
+    #      client-id: ${{ secrets.AZURE_CLIENT_ID }}
+    #      tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+    #      subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Create Azure VM and Configure
-        uses: azure/cli@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            name="mySSHVM" >> $GITHUB_ENV
-            resource_group="MyResourceGroup" >> $GITHUB_ENV
-            location="eastus" >> $GITHUB_ENV
-            image="Ubuntu2404" >> $GITHUB_ENV
-            size="Standard_D2s_v3" >> $GITHUB_ENV
-            admin_username="azureuser" >> $GITHUB_ENV
+    #  - name: Create Azure VM and Configure
+    #    uses: azure/cli@v2
+    #    with:
+    #      azcliversion: latest
+    #      inlineScript: |
+    #        name="mySSHVM" >> $GITHUB_ENV
+    #        resource_group="MyResourceGroup" >> $GITHUB_ENV
+    #        location="eastus" >> $GITHUB_ENV
+    #        image="Ubuntu2404" >> $GITHUB_ENV
+    #        size="Standard_D2s_v3" >> $GITHUB_ENV
+    #        admin_username="azureuser" >> $GITHUB_ENV
 
-                echo "Creating resource group '$resource_group' in '$location' (if it doesn't exist)..."
-                 az group create --name "$resource_group" --location "$location" --output none
-                  if [ $? -ne 0 ]; then
-                    echo "Error: Failed to create or verify resource group '$resource_group'. Exiting."
-                      exit 1
-                  fi
-                  echo "Resource group '$resource_group' is ready."
-                    
-                 az vm create \
-                --name "$name"  \
-                --resource-group "$resource_group" \
-                --location "$location" \
-                --image "$image" \
-                --size "$size" \
-                --admin-username "$admin_username" \
-                --ssh-key-value "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC6R0txdaCzLfBcLtaKchMdS8XuC4OYWkxfpLzbfLOkK6kz3kxH6Z2pxvFdiCcotcr/57sWz9RRB/mytzsBqK3YGJsGkRAWrGAAqgCT8NcBpih/MZKWsu0/visqYzCKW25rQAgJSQ16WT3zHGgW5JXX9LOZw0pibvUA0yU7Ddhquk/S3iKgEid1RsoFqqoLrHgQ9I3y/Vk2RNf9QW6u6ORl/pdszubvnXlx8vLi7TPFeFIJLu0NM7rv3EsWYCM6dWQBX9by2pWiGHIxH5WjkUKra/6caKprq6G5tLA7ThJ0W0gBMZK5PbTNcJcerBzlGyx1osO6i/w42MwqCyn53HtaB99jbRQFKeb4Tv5aabFXWQas+0n6U6c7iPEi6Z4MXuYf2NTDvPFzo0U+lM5Mmswn4t1mZrHocERYTsg/cx3mpjcKqVtmHNAzT3Hs3nrzI9JCjnlEuBdJ2NRVuLgk8NLcIj36FScomJefGCwbkzqBod+ujSh3mrCMfpJq6pj1lWOpC24RyU7tjInaoJPhZo2I/7iILyHrixM7xpkBVUYW3Dlw3FMfvDHyoiDbJEiQfOY6PGzC8saCsTqbYAvqm2GW/GkyNWkT9dJaVYU9iUdyV6se9w7TOPzdbV8842nIZJGOmxVduCEzUX5mM6wQGyzYiLTPvYbcblujIQYYyLZ/Dw== clear@DESKTOP-LLSGRBE"
-                  az vm open-port -g "$resource_group" -n "$name" --port 22 --priority 100 --output none
-                  az vm open-port -g "$resource_group" -n "$name" --port 80 --priority 101 --output none
-                  az vm open-port -g "$resource_group" -n "$name" --port 5000 --priority 102 --output none
+    #            echo "Creating resource group '$resource_group' in '$location' (if it doesn't exist)..."
+    #             az group create --name "$resource_group" --location "$location" --output none
+    #              if [ $? -ne 0 ]; then
+    #                echo "Error: Failed to create or verify resource group '$resource_group'. Exiting."
+    #                  exit 1
+    #             echo "Resource group '$resource_group' is ready."
+                   
+    #             az vm create \
+    #            --name "$name"  \
+    #            --resource-group "$resource_group" \
+    #            --location "$location" \
+    #             --image "$image" \
+    #             --size "$size" \
+    #             --admin-username "$admin_username" \
+    #             --ssh-key-value "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC6R0txdaCzLfBcLtaKchMdS8XuC4OYWkxfpLzbfLOkK6kz3kxH6Z2pxvFdiCcotcr/57sWz9RRB/mytzsBqK3YGJsGkRAWrGAAqgCT8NcBpih/MZKWsu0/visqYzCKW25rQAgJSQ16WT3zHGgW5JXX9LOZw0pibvUA0yU7Ddhquk/S3iKgEid1RsoFqqoLrHgQ9I3y/Vk2RNf9QW6u6ORl/pdszubvnXlx8vLi7TPFeFIJLu0NM7rv3EsWYCM6dWQBX9by2pWiGHIxH5WjkUKra/6caKprq6G5tLA7ThJ0W0gBMZK5PbTNcJcerBzlGyx1osO6i/w42MwqCyn53HtaB99jbRQFKeb4Tv5aabFXWQas+0n6U6c7iPEi6Z4MXuYf2NTDvPFzo0U+lM5Mmswn4t1mZrHocERYTsg/cx3mpjcKqVtmHNAzT3Hs3nrzI9JCjnlEuBdJ2NRVuLgk8NLcIj36FScomJefGCwbkzqBod+ujSh3mrCMfpJq6pj1lWOpC24RyU7tjInaoJPhZo2I/7iILyHrixM7xpkBVUYW3Dlw3FMfvDHyoiDbJEiQfOY6PGzC8saCsTqbYAvqm2GW/GkyNWkT9dJaVYU9iUdyV6se9w7TOPzdbV8842nIZJGOmxVduCEzUX5mM6wQGyzYiLTPvYbcblujIQYYyLZ/Dw== clear@DESKTOP-LLSGRBE"
+    #               az vm open-port -g "$resource_group" -n "$name" --port 22 --priority 100 --output none
+    #               az vm open-port -g "$resource_group" -n "$name" --port 80 --priority 101 --output none
+    #               az vm open-port -g "$resource_group" -n "$name" --port 5000 --priority 102 --output none
                  
                              
 
-      - name: public_ip
-        uses: azure/cli@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
+    #   - name: public_ip
+    #     uses: azure/cli@v2
+    #     with:
+    #       azcliversion: latest
+    #       inlineScript: |
     
-           PUBLIC_IP=$(az vm show \
-           --resource-group "MyResourceGroup" \
-           --name "mySSHVM" \
-            --show-details \
-            --query publicIps \
-            --output tsv)
-            if [ -z "$PUBLIC_IP" ]; then
-             echo "Error: Could not retrieve public IP address for VM '${{ env.VM_NAME }}'."
-             exit 1
-             fi
+    #        PUBLIC_IP=$(az vm show \
+    #        --resource-group "MyResourceGroup" \
+    #        --name "mySSHVM" \
+    #         --show-details \
+    #         --query publicIps \
+    #         --output tsv)
+    #         if [ -z "$PUBLIC_IP" ]; then
+    #          echo "Error: Could not retrieve public IP address for VM '${{ env.VM_NAME }}'."
+    #          exit 1
+    #          fi
              
-            dirty_ip="$PUBLIC_IP"
-            clean_ip=$(echo "$dirty_ip" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n 1)
-            echo "cleaned_ip: $clean_ip"
+    #         dirty_ip="$PUBLIC_IP"
+    #         clean_ip=$(echo "$dirty_ip" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n 1)
+    #         echo "cleaned_ip: $clean_ip"
             
-             echo "Retrieved VM Public IP: $clean_ip"
-             echo "CLEAN_IP=$clean_ip" >> $GITHUB_ENV
+    #          echo "Retrieved VM Public IP: $clean_ip"
+    #          echo "CLEAN_IP=$clean_ip" >> $GITHUB_ENV
             
       
 
 
-      - name: SSH and run commands on Azure VM
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ env.CLEAN_IP }}
-          username: azureuser
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
-          script: |
-              echo "updating apt pakage index...."
-              sudo apt-get update -y
-              echo "Installing git..."
-              sudo apt-get install -y git
-              echo "installing docker and docker-compose..."
-              sudo apt -get install -y \
-                ca-certificates \
-                curl \
-                gnupg \
-                lsb-release
-              sudo mkdir -p /etc/apt/keyrings
-              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-              echo \
-                "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-                $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-                sudo apt-get update -y
-                sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-                echo "adding user to docker group..."
-                sudo usermod -aG docker azureuser
-                echo "creating app directory and cloning repo..."
-              APP_DIR="/home/azureuser/Project1"
-               REPO_URL="https://github.com/DELONE-de/Project1.git"
-               BRANCH="main"
-               ADMIN_USERNAME="azureuser"
-               sudo mkdir -p "/home/$ADMIN_USERNAME" || { echo "Error: Failed to ensure /home/$ADMIN_USERNAME exists."; exit 1; }
-              sudo chown "$ADMIN_USERNAME":"$ADMIN_USERNAME" "/home/$ADMIN_USERNAME" || { echo "Error: Failed to set ownership for /home/$ADMIN_USERNAME."; exit 1; }
+    #   - name: SSH and run commands on Azure VM
+    #     uses: appleboy/ssh-action@master
+    #     with:
+    #       host: ${{ env.CLEAN_IP }}
+    #       username: azureuser
+    #       key: ${{ secrets.SSH_PRIVATE_KEY }}
+    #       port: 22
+    #       script: |
+    #           echo "updating apt pakage index...."
+    #           sudo apt-get update -y
+    #           echo "Installing git..."
+    #           sudo apt-get install -y git
+    #           echo "installing docker and docker-compose..."
+    #           sudo apt -get install -y \
+    #             ca-certificates \
+    #             curl \
+    #             gnupg \
+    #             lsb-release
+    #           sudo mkdir -p /etc/apt/keyrings
+    #           curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    #           echo \
+    #             "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+    #             $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    #             sudo apt-get update -y
+    #             sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+    #             echo "adding user to docker group..."
+    #             sudo usermod -aG docker azureuser
+    #             echo "creating app directory and cloning repo..."
+    #           APP_DIR="/home/azureuser/Project1"
+    #            REPO_URL="https://github.com/DELONE-de/Project1.git"
+    #            BRANCH="main"
+    #            ADMIN_USERNAME="azureuser"
+    #            sudo mkdir -p "/home/$ADMIN_USERNAME" || { echo "Error: Failed to ensure /home/$ADMIN_USERNAME exists."; exit 1; }
+    #           sudo chown "$ADMIN_USERNAME":"$ADMIN_USERNAME" "/home/$ADMIN_USERNAME" || { echo "Error: Failed to set ownership for /home/$ADMIN_USERNAME."; exit 1; }
               
-              # --- 3. Change to the user's home directory (a common base for operations) ---
-              cd "/home/$ADMIN_USERNAME" || { echo "Error: Failed to change to user's home directory."; exit 1; }
+    #           # --- 3. Change to the user's home directory (a common base for operations) ---
+    #           cd "/home/$ADMIN_USERNAME" || { echo "Error: Failed to change to user's home directory."; exit 1; }
               
-              # --- 4. Conditional Git Clone/Pull Logic ---
-              if [ -d "$APP_DIR/.git" ]; then
-                  echo "Repository already cloned at $APP_DIR. Pulling latest changes..."
+    #           # --- 4. Conditional Git Clone/Pull Logic ---
+    #           if [ -d "$APP_DIR/.git" ]; then
+    #               echo "Repository already cloned at $APP_DIR. Pulling latest changes..."
                   
-                  # Change into the existing app directory
-                  cd "$APP_DIR" || { echo "Error: Failed to change to existing app directory $APP_DIR."; exit 1; }
+    #               # Change into the existing app directory
+    #               cd "$APP_DIR" || { echo "Error: Failed to change to existing app directory $APP_DIR."; exit 1; }
                   
-                  # Pull latest changes
-                  git pull origin "$BRANCH" || { echo "Error: Git pull failed."; exit 1; }
-              else
-                  echo "Cloning new repository into $APP_DIR..."
+    #               # Pull latest changes
+    #               git pull origin "$BRANCH" || { echo "Error: Git pull failed."; exit 1; }
+    #           else
+    #               echo "Cloning new repository into $APP_DIR..."
                   
-                  # git clone will create $APP_DIR itself, no need for mkdir -p before it here.
-                  git clone -b "$BRANCH" "$REPO_URL" "$APP_DIR" || { echo "Error: Git clone failed."; exit 1; }
+    #               # git clone will create $APP_DIR itself, no need for mkdir -p before it here.
+    #               git clone -b "$BRANCH" "$REPO_URL" "$APP_DIR" || { echo "Error: Git clone failed."; exit 1; }
                   
-                  # After cloning, change into the newly created directory for further operations
-                  cd "$APP_DIR" || { echo "Error: Failed to change to newly cloned app directory $APP_DIR."; exit 1; }
-              fi
+    #               # After cloning, change into the newly created directory for further operations
+    #               cd "$APP_DIR" || { echo "Error: Failed to change to newly cloned app directory $APP_DIR."; exit 1; }
+    #           fi
 
-              echo "--- Repository operations complete. Current directory: $(pwd) ---"
-      - name: docker pull & compose up
-        uses: appleboy/ssh-action@master
-        with:
-         host:  ${{ env.CLEAN_IP }}
-         username: azureuser
-         key: ${{ secrets.SSH_PRIVATE_KEY }}
-         script: |
-           echo "nagivating to app directory..."
-            cd /home/azureuser/Project1
-             echo "pulling latest docker images..."
-              docker compose pull
-              echo "starting docker compose..."
-              docker compose up -d
-              echo "listting running containers..."
-              docker ps -a
+    #           echo "--- Repository operations complete. Current directory: $(pwd) ---"
+    #   - name: docker pull & compose up
+    #     uses: appleboy/ssh-action@master
+    #     with:
+    #      host:  ${{ env.CLEAN_IP }}
+    #      username: azureuser
+    #      key: ${{ secrets.SSH_PRIVATE_KEY }}
+    #      script: |
+    #        echo "nagivating to app directory..."
+    #         cd /home/azureuser/Project1
+    #          echo "pulling latest docker images..."
+    #           docker compose pull
+    #           echo "starting docker compose..."
+    #           docker compose up -d
+    #           echo "listting running containers..."
+    #           docker ps -a
                  
